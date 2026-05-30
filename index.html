@@ -453,7 +453,7 @@ function berechne(){
 
   // Sofort: Part 1 + Solar + NDVI
   const [alleRes,, potRes, ndviRes] = await Promise.all([
-    loadLayer('data/dachflaechen_WHB_part1.geojson', 'alle', styleAlle, clickAlle, null),
+    loadLayer('data/dachflaechen_WHB_part1.json', 'alle', styleAlle, clickAlle, null),
     loadLayer('potentialflaechen_solar.geojson',      'pot',  stylePot,  clickPot,  null),
     loadLayer('dachflaechen_whb_ndvi.geojson',        'ndvi', styleNdvi, clickNdvi, ndviFilter),
   ]);
