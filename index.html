@@ -446,9 +446,9 @@ function berechne(){
 
   // NDVI-Filter: nur Coverage ≥ 50%
   const ndviFilter = f => {
-    const raw = parseFloat(f.properties.ndvicov ?? f.properties.ndvi_coverage ?? f.properties.ndvi_cov ?? 0);
-    const cov = raw <= 1 ? raw * 100 : raw;  // normalize to %
-    return cov >= 50;
+    const cov = parseFloat(f.properties.ndvi_cov ?? f.properties.ndvi_coverage ?? f.properties.ndvicov ?? 0);
+    // ndvi_cov is 0–1 decimal (e.g. 0.07 = 7%), threshold >= 0.5 (50%)
+    return cov >= 0.5;
   };
 
   // Sofort: Part 1 + Solar + NDVI
