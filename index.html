@@ -90,7 +90,7 @@ input:checked+.toggle-slider:before{transform:translateX(15px)}
 <div id="sidebar">
   <div id="sidebar-header">
     <h1>🌿 Gründach-Potenzial Hamburg</h1>
-    <p>v2 · Tile 566–567 / 5928–5929</p>
+    <p>v3 · Wilhelmsburg</p>
   </div>
 
   <div class="section">
@@ -213,7 +213,7 @@ input:checked+.toggle-slider:before{transform:translateX(15px)}
 
 <script>
 const TILE_CENTER = [53.502, 9.998];
-const TILE_ZOOM   = 16;
+const TILE_ZOOM   = 14;
 
 // ── Basemaps ──────────────────────────────────────────────────────
 const osmTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -424,9 +424,11 @@ function berechne(){
   };
 
   const [alleRes, potRes, ndviRes] = await Promise.all([
-    loadLayer('data/dachflaechen1.geojson',        'alle', styleAlle, clickAlle, null),
+    ...Array.from({length:8}, (_,i) =>
+  loadLayer(`data/dachflaechen_WHB_part${i+1}.geojson`, i===0?'alle':null, styleAlle, clickAlle, null)
+),
     loadLayer('data/potentialflaechen_solar.geojson',    'pot',  stylePot,  clickPot,  null),
-    loadLayer('data/dachflaechen_ndvi_05.geojson',  'ndvi', styleNdvi, clickNdvi, ndviFilter),
+    loadLayer('data/dachflaechen_whb_ndvi.geojson',  'ndvi', styleNdvi, clickNdvi, ndviFilter),
   ]);
 
   updateStats(
