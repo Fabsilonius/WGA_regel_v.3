@@ -6,3 +6,4 @@ dachflaechen_WHB_NDVI.geojson
 truedop_WHB.tif
 .DS_Store
 __pycache__/
+dachflaechen_WHB.geojson
