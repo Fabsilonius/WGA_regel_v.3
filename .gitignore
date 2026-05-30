@@ -1,0 +1,8 @@
+*.tif
+*.vrt
+dachflaechen_WHB_gefiltert.geojson
+dachflaechen_WHB_solar.geojson
+dachflaechen_WHB_NDVI.geojson
+truedop_WHB.tif
+.DS_Store
+__pycache__/
