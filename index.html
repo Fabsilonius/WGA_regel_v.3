@@ -333,9 +333,15 @@ let currentArea=0;
 
 function clickAlle(p){
   showBox('alle');
-  document.getElementById('a-area').textContent  = p.area_m2!=null ? fmt1(p.area_m2)+' m²':'–';
-  document.getElementById('a-slope').textContent = p.slope!=null ? fmt1(p.slope)+'°' : p.dachneig!=null ? fmt1(p.dachneig)+'°':'–';
-  document.getElementById('a-bid').textContent   = p.buildingid ?? p.building_id ?? p.geb_id ?? '–';
+
+  const areaVal = p.dachfl_2d ?? p.dachfl_3d ?? p.area_m2 ?? p.flaeche;
+  const slopeVal = p.dachneig ?? p.slope ?? p.neigung;
+
+  document.getElementById('a-area').textContent =
+    (areaVal != null && parseFloat(areaVal) > 0) ? fmt1(areaVal) + ' m²' : '–';
+
+  document.getElementById('a-slope').textContent =
+    slopeVal != null ? fmt1(slopeVal) + '°' : '–';
 }
 function clickPot(p){
   showBox('pot');
