@@ -264,7 +264,13 @@ function switchBase(w){
 
 function toggleLayer(key, on){
   if(key === 'alle'){
-    updateAlleVisibility();
+    if(on){
+      updateAlleVisibility();
+    } else {
+      ['alle','alle2','alle3','alle4','alle5','alle6','alle7','alle8'].forEach(k => {
+        if(gLayers[k] && map.hasLayer(gLayers[k])) map.removeLayer(gLayers[k]);
+      });
+    }
     return;
   }
   if(!gLayers[key]) return;
@@ -388,13 +394,7 @@ async function loadLayer(path, key, styleFn, clickFn, filterFn){
       }
     });
     gLayers[key] = layer;
-    // Alle-Layer sofort auf Karte, aber Zoom-Check beachten
-    if(key && key.startsWith('alle')){
-      if(map.getZoom() >= MIN_ZOOM_ALLE) layer.addTo(map);
-    }
-    return { raw: data, filtered: features };
-  }catch(e){ console.warn('Layer nicht geladen:', path, e.message); return null; }
-}
+return { raw: data, filtered: features };
 
 // ── Statistiken ───────────────────────────────────────────────────
 function updateStats(alle, pot, ndviFiltered){
@@ -443,6 +443,48 @@ function berechne(){
 // ── Init ──────────────────────────────────────────────────────────
 (async()=>{
   document.getElementById('c-preis').placeholder = 'Standard: 80 €/m²';
+
+  const ndviFilter = f => {
+    const raw = parseFloat(f.properties.ndvicov ?? f.properties.ndvi_coverage ?? f.properties.ndvi_cov ?? 0);
+    const cov = raw <= 1 ? raw*100 : raw;
+    return cov >= 50;
+  };
+
+  document.getElementById('tog-alle').checked = false;
+  document.getElementById('tog-pot').checked  = false;
+  document.getElementById('tog-ndvi').checked = false;
+
+  const [potRes, ndviRes] = await Promise.all([
+    loadLayer('potentialflaechen_solar.geojson', 'pot',  stylePot,  clickPot,  null),
+    loadLayer('whb_ndvi_gefiltert.geojson',      'ndvi', styleNdvi, clickNdvi, ndviFilter),
+  ]);
+
+  if(gLayers.pot  && map.hasLayer(gLayers.pot))  map.removeLayer(gLayers.pot);
+  if(gLayers.ndvi && map.hasLayer(gLayers.ndvi)) map.removeLayer(gLayers.ndvi);
+
+  updateStats(null, potRes?.raw, ndviRes?.filtered);
+  document.getElementById('loading-overlay').style.display = 'none';
+
+  const alleParts = [
+    ['data/dachflaechen_WHB_part1.geojson','alle'],
+    ['data/dachflaechen_WHB_part2.geojson','alle2'],
+    ['data/dachflaechen_WHB_part3.geojson','alle3'],
+    ['data/dachflaechen_WHB_part4.geojson','alle4'],
+    ['data/dachflaechen_WHB_part5.geojson','alle5'],
+    ['data/dachflaechen_WHB_part6.geojson','alle6'],
+    ['data/dachflaechen_WHB_part7.geojson','alle7'],
+    ['data/dachflaechen_WHB_part8.geojson','alle8'],
+  ];
+
+  let totalFeatures = 0;
+  for(const [path, key] of alleParts){
+    const res = await loadLayer(path, key, styleAlle, clickAlle, null);
+    if(res){
+      totalFeatures += res.raw.features.length;
+      document.getElementById('s-total').textContent = totalFeatures;
+    }
+  }
+})();
 
   // NDVI-Filter: nur Coverage >= 50%
   const ndviFilter = f => {
