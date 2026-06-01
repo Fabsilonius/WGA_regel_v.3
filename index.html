@@ -485,6 +485,20 @@ function berechne(){
     }
   }
 })();
+</script>
+</body>
+</html>
+'''
+
+final_html = basis + new_end
+
+with open('output/index.html', 'w', encoding='utf-8') as f:
+    f.write(final_html)
+
+# Prüfen: nur ein (async() vorhanden?
+count = final_html.count('(async()')
+print(f"Anzahl async-Blöcke: {count} (muss 1 sein)")
+print(f"Dateigröße: {len(final_html)} Zeichen")
 
   // NDVI-Filter: nur Coverage >= 50%
   const ndviFilter = f => {
