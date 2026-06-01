@@ -235,11 +235,15 @@ const MIN_ZOOM_ALLE = 14;
 function updateAlleVisibility(){
   const z = map.getZoom();
   const tog = document.getElementById('tog-alle');
-  if(!tog || !tog.checked) return;
-  ['alle','alle2','alle3','alle4','alle5','alle6','alle7','alle8'].forEach(k => {
+  const alleKeys = ['alle','alle2','alle3','alle4','alle5','alle6','alle7','alle8'];
+
+  alleKeys.forEach(k => {
     if(!gLayers[k]) return;
-    if(z >= MIN_ZOOM_ALLE){ if(!map.hasLayer(gLayers[k])) gLayers[k].addTo(map); }
-    else { if(map.hasLayer(gLayers[k])) map.removeLayer(gLayers[k]); }
+    if(tog.checked && z >= MIN_ZOOM_ALLE){
+      if(!map.hasLayer(gLayers[k])) gLayers[k].addTo(map);
+    } else {
+      if(map.hasLayer(gLayers[k])) map.removeLayer(gLayers[k]);
+    }
   });
 }
 map.on('zoomend', updateAlleVisibility);
@@ -259,16 +263,12 @@ function switchBase(w){
 }
 
 function toggleLayer(key, on){
-  if(key==='alle'){
-    ['alle','alle2','alle3','alle4','alle5','alle6','alle7','alle8'].forEach(k=>{
-      if(!gLayers[k]) return;
-      on ? gLayers[k].addTo(map) : map.removeLayer(gLayers[k]);
-    });
-    if(on) updateAlleVisibility();
-  } else {
-    if(!gLayers[key]) return;
-    on ? gLayers[key].addTo(map) : map.removeLayer(gLayers[key]);
+  if(key === 'alle'){
+    updateAlleVisibility();
+    return;
   }
+  if(!gLayers[key]) return;
+  on ? gLayers[key].addTo(map) : map.removeLayer(gLayers[key]);
 }
 
 // ── Infoboxen ─────────────────────────────────────────────────────
