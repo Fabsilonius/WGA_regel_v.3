@@ -426,7 +426,7 @@ function berechne(){
   const [alleRes, potRes, ndviRes] = await Promise.all([
     loadLayer('data/dachflaechen1.geojson',        'alle', styleAlle, clickAlle, null),
     loadLayer('potentialflaechen_solar.geojson',    'pot',  stylePot,  clickPot,  null),
-    loadLayer('whb_ndvi_gefiltert.geojson',  'ndvi', styleNdvi, clickNdvi, ndviFilter),
+    loadLayer('ndvi_whb.geojson',  'ndvi', styleNdvi, clickNdvi, ndviFilter),
   ]);
 
   updateStats(
