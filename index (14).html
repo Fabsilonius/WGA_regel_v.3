@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Gründach-Potenzial Hamburg v2</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;display:flex;height:100vh;overflow:hidden;background:#0f1117;color:#e2e8f0}
+
+#sidebar{width:300px;min-width:260px;height:100vh;background:#1a1d27;border-right:1px solid #2d3348;display:flex;flex-direction:column;overflow-y:auto;z-index:1000}
+#sidebar-header{padding:18px 16px 12px;border-bottom:1px solid #2d3348}
+#sidebar-header h1{font-size:15px;font-weight:700;color:#7dd3b0;letter-spacing:.3px}
+#sidebar-header p{font-size:11px;color:#64748b;margin-top:3px}
+.section{padding:10px 16px;border-bottom:1px solid #1e2235}
+.section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4a5568;margin-bottom:8px}
+
+.layer-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1e2235}
+.layer-row:last-child{border-bottom:none}
+.layer-label{display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer}
+.layer-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.layer-toggle{position:relative;width:32px;height:17px;cursor:pointer}
+.layer-toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:#2d3348;border-radius:17px;transition:.2s}
+.toggle-slider:before{content:"";position:absolute;height:13px;width:13px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.2s}
+input:checked+.toggle-slider{background:#7dd3b0}
+input:checked+.toggle-slider:before{transform:translateX(15px)}
+
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.stat-card{background:#12151f;border-radius:8px;padding:8px 10px;border:1px solid #2d3348}
+.stat-val{font-size:18px;font-weight:700;color:#7dd3b0}
+.stat-lbl{font-size:10px;color:#64748b;margin-top:2px}
+
+.legend-item{display:flex;align-items:center;gap:8px;font-size:11px;color:#94a3b8;margin-bottom:5px}
+.legend-swatch{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+
+.bmap-btn{display:block;width:100%;padding:6px 10px;margin-bottom:4px;background:#12151f;border:1px solid #2d3348;border-radius:6px;color:#94a3b8;font-size:11px;cursor:pointer;text-align:left;transition:all .15s}
+.bmap-btn.active{border-color:#7dd3b0;color:#7dd3b0;background:#0d1f18}
+
+#infobox-wrap{margin:10px 12px 16px}
+.infobox{display:none;background:#12151f;border:1px solid #2d3348;border-radius:10px;padding:12px;font-size:12px}
+.infobox.active{display:block}
+.infobox h3{font-size:12px;font-weight:700;margin-bottom:8px}
+.infobox-alle h3{color:#60a5fa}
+.infobox-pot  h3{color:#34d399}
+.infobox-ndvi h3{color:#86efac}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #1e2235}
+.info-row:last-child{border-bottom:none}
+.info-key{color:#64748b;flex-shrink:0}
+.info-val{color:#e2e8f0;font-weight:600;text-align:right;max-width:60%}
+
+.badge{display:inline-block;padding:2px 7px;border-radius:12px;font-size:10px;font-weight:700}
+.b-green  {background:#14532d;color:#86efac}
+.b-lime   {background:#1a3a0a;color:#bef264}
+.b-teal   {background:#0d3321;color:#5eead4}
+.b-blue   {background:#1e3a5f;color:#7dd3fc}
+.b-orange {background:#451a03;color:#fdba74}
+.b-red    {background:#3f1414;color:#fca5a5}
+.b-yellow {background:#422006;color:#fde68a}
+.b-gray   {background:#1e293b;color:#94a3b8}
+
+.btn-calc{width:100%;margin-top:10px;padding:7px;background:#14532d;border:1px solid #86efac;border-radius:7px;color:#86efac;font-size:12px;font-weight:700;cursor:pointer;transition:background .15s}
+.btn-calc:hover{background:#166534}
+
+#modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9000;align-items:center;justify-content:center}
+#modal-overlay.open{display:flex}
+#modal{background:#1a1d27;border:1px solid #2d3348;border-radius:14px;padding:24px;width:370px;max-width:95vw;position:relative}
+#modal h2{font-size:15px;font-weight:700;color:#34d399;margin-bottom:3px}
+.modal-sub{font-size:11px;color:#64748b;margin-bottom:16px}
+.modal-field{margin-bottom:12px}
+.modal-field label{display:block;font-size:11px;color:#94a3b8;margin-bottom:4px}
+.modal-field select,.modal-field input[type=number]{width:100%;padding:7px 10px;background:#12151f;border:1px solid #2d3348;border-radius:7px;color:#e2e8f0;font-size:12px}
+#modal-result{background:#0d1f18;border:1px solid #166534;border-radius:8px;padding:12px;margin-top:14px;display:none}
+.res-label{font-size:11px;color:#64748b;margin-bottom:3px}
+.res-val{font-size:22px;font-weight:700;color:#7dd3b0}
+.res-row{font-size:11px;color:#94a3b8;margin-top:3px}
+.res-hint{font-size:10px;color:#4a5568;margin-top:8px}
+.btn-modal-calc{width:100%;margin-top:12px;padding:8px;background:#166534;border:none;border-radius:7px;color:#fff;font-size:13px;font-weight:700;cursor:pointer}
+.btn-modal-calc:hover{background:#15803d}
+.btn-close{position:absolute;top:12px;right:14px;background:none;border:none;color:#64748b;font-size:18px;cursor:pointer}
+.btn-close:hover{color:#e2e8f0}
+
+#map{flex:1;height:100vh}
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div id="sidebar-header">
+    <h1>🌿 Gründach-Potenzial Hamburg</h1>
+    <p>v2 · Tile 566–567 / 5928–5929</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Hintergrundkarte</div>
+    <button class="bmap-btn active" id="btn-osm"     onclick="switchBase('osm')">🗺 OSM Straßenkarte</button>
+    <button class="bmap-btn"        id="btn-truedop" onclick="switchBase('truedop')">🛰 TrueDOP 2024 belaubt (LGV HH)</button>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Layer</div>
+    <div class="layer-row">
+      <label class="layer-label"><span class="layer-dot" style="background:#60a5fa"></span>Alle Dachflächen</label>
+      <label class="layer-toggle"><input type="checkbox" id="tog-alle" checked onchange="toggleLayer('alle',this.checked)"><span class="toggle-slider"></span></label>
+    </div>
+    <div class="layer-row">
+      <label class="layer-label"><span class="layer-dot" style="background:#34d399"></span>Potenzialflächen</label>
+      <label class="layer-toggle"><input type="checkbox" id="tog-pot" onchange="toggleLayer('pot',this.checked)"><span class="toggle-slider"></span></label>
+    </div>
+    <div class="layer-row">
+      <label class="layer-label"><span class="layer-dot" style="background:#86efac"></span>Gründächer</label>
+      <label class="layer-toggle"><input type="checkbox" id="tog-ndvi" onchange="toggleLayer('ndvi',this.checked)"><span class="toggle-slider"></span></label>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Statistiken</div>
+    <div class="stats-grid">
+        <div class="stat-card"><div class="stat-val" id="s-total">–</div><div class="stat-lbl">Dachflächen</div></div>
+      <div class="stat-card"><div class="stat-val" id="s-pot">–</div><div class="stat-lbl">Potenzialflächen</div></div>
+      <div class="stat-card" style="grid-column: 1 / -1;"><div class="stat-val" id="s-beg">–</div><div class="stat-lbl">Gründächer</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Legende Gründächer</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#166534"></div>Hoch begrünt (Coverage &gt;75 %)</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#4ade80"></div>Mittel begrünt (Coverage 50–75 %)</div>
+    <div class="section-title" style="margin-top:10px">Legende Eignung</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#86efac"></div>Sehr gut geeignet</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#7dd3fc"></div>Gut geeignet</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#fdba74"></div>Bedingt geeignet</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#fca5a5"></div>Ungeeignet</div>
+  </div>
+
+  <div class="section-title" style="padding:10px 16px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4a5568">Objekt-Details</div>
+  <div id="infobox-wrap">
+    <div id="ib-hint" style="color:#4a5568;font-size:11px;padding:4px 0">Klick auf eine Fläche für Details</div>
+
+    <!-- Infobox 1: Alle Dächer -->
+    <div class="infobox infobox-alle" id="ib-alle">
+      <h3>🏠 Dachfläche</h3>
+      <div class="info-row"><span class="info-key">Fläche</span><span class="info-val" id="a-area">–</span></div>
+      <div class="info-row"><span class="info-key">Neigung</span><span class="info-val" id="a-slope">–</span></div>
+      <div class="info-row"><span class="info-key">Gebäude-ID</span><span class="info-val" id="a-bid">–</span></div>
+    </div>
+
+    <!-- Infobox 2: Potenzialflächen -->
+    <div class="infobox infobox-pot" id="ib-pot">
+      <h3>✅ Potenzialfläche</h3>
+      <div class="info-row"><span class="info-key">Fläche</span><span class="info-val" id="p-area">–</span></div>
+      <div class="info-row"><span class="info-key">Neigung</span><span class="info-val" id="p-slope">–</span></div>
+      <div class="info-row"><span class="info-key">Verschattung</span><span class="info-val" id="p-schatten">–</span></div>
+      <div class="info-row">
+  <span class="info-key">Ausrichtung</span>
+  <span class="info-val" id="p-aspect">–</span>
+</div>
+      <div class="info-row"><span class="info-key">Gründach-Eignung</span><span class="info-val" id="p-eignung">–</span></div>
+      <button class="btn-calc" onclick="openModal()">🧮 Kostenberechnung</button>
+    </div>
+
+    <!-- Infobox 3: Gründächer -->
+    <div class="infobox infobox-ndvi" id="ib-ndvi">
+      <h3>🌿 Gründach</h3>
+      <div class="info-row"><span class="info-key">NDVI Coverage</span><span class="info-val" id="n-cov">–</span></div>
+      <div class="info-row"><span class="info-key">NDVI Mittelwert</span><span class="info-val" id="n-mean">–</span></div>
+      <div class="info-row"><span class="info-key">Begrünungsklasse</span><span class="info-val" id="n-class">–</span></div>
+      <div class="info-row"><span class="info-key">Baum-Verdacht</span><span class="info-val" id="n-tree">–</span></div>
+    </div>
+  </div>
+</div>
+
+<div id="map"></div>
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div id="modal">
+    <button class="btn-close" onclick="closeModal()">✕</button>
+    <h2>🧮 Gründach-Kostenberechnung</h2>
+    <p class="modal-sub" id="m-area">Fläche: –</p>
+    <div class="modal-field">
+      <label>Begrünungstyp</label>
+      <select id="c-type" onchange="updatePreis()">
+        <option value="80">Extensiv — Sedum, 10 cm Substrat (~80 €/m²)</option>
+        <option value="150">Einfache Intensivbegrünung — 20 cm (~150 €/m²)</option>
+        <option value="220">Intensive Begrünung — 30 cm (~220 €/m²)</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>Antragsteller</label>
+      <select id="c-antrag">
+        <option value="0.6">Privat / GdWE — 60 % Förderung (IFB Hamburg)</option>
+        <option value="0.4">Gewerbe / Vermieter — 40 % Förderung</option>
+        <option value="0">Keine Förderung</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>Kostensatz (€/m²) — optional anpassen</label>
+      <input type="number" id="c-preis" min="20" max="500" placeholder="Standard aus Typ"/>
+    </div>
+    <button class="btn-modal-calc" onclick="berechne()">Berechnen</button>
+    <div id="modal-result">
+      <div class="res-label">Geschätzte Gesamtkosten (brutto)</div>
+      <div class="res-val" id="r-brutto">–</div>
+      <div class="res-row" id="r-foerd">–</div>
+      <div class="res-row" id="r-netto">–</div>
+      <div class="res-hint">⚠ Richtwerte gem. BuGG-Expertenschätzung. Statik & individuelle Planung nicht enthalten.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TILE_CENTER = [53.502, 9.998];
+const TILE_ZOOM   = 16;
+
+// ── Basemaps ──────────────────────────────────────────────────────
+const osmTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  {maxZoom:21, attribution:'© OpenStreetMap contributors'});
+const truedopTile = L.tileLayer.wms(
+  'https://geodienste.hamburg.de/wms_dop_zeitreihe_belaubt',
+  {layers:'dop_zeitreihe_belaubt', format:'image/png', transparent:false,
+   version:'1.3.0', crs:L.CRS.EPSG3857, time:'2024',
+   attribution:'© LGV Hamburg 2024', maxZoom:21});
+
+const map = L.map('map',{center:TILE_CENTER, zoom:TILE_ZOOM, layers:[osmTile]});
+const gLayers = {alle:null, pot:null, ndvi:null};
+
+function switchBase(w){
+  if(w==='osm'){
+    map.removeLayer(truedopTile); osmTile.addTo(map);
+    document.getElementById('btn-osm').classList.add('active');
+    document.getElementById('btn-truedop').classList.remove('active');
+  } else {
+    map.removeLayer(osmTile); truedopTile.addTo(map);
+    document.getElementById('btn-truedop').classList.add('active');
+    document.getElementById('btn-osm').classList.remove('active');
+  }
+}
+function toggleLayer(key,on){
+  if(!gLayers[key])return;
+  on ? gLayers[key].addTo(map) : map.removeLayer(gLayers[key]);
+}
+
+// ── Infoboxen ─────────────────────────────────────────────────────
+function showBox(type){
+  document.getElementById('ib-hint').style.display='none';
+  ['ib-alle','ib-pot','ib-ndvi'].forEach(id=>document.getElementById(id).classList.remove('active'));
+  document.getElementById('ib-'+type).classList.add('active');
+}
+
+// ── Hilfsfunktionen ───────────────────────────────────────────────
+const fmt1 = v => v!=null ? parseFloat(v).toFixed(1) : '–';
+
+function eignungBadge(e){
+  if(!e) return '<span class="badge b-gray">–</span>';
+  if(e.includes('sehr gut')) return '<span class="badge b-green">'+e+'</span>';
+  if(e.includes('gut'))      return '<span class="badge b-blue">'+e+'</span>';
+  if(e.includes('bedingt'))  return '<span class="badge b-orange">'+e+'</span>';
+  return '<span class="badge b-red">'+e+'</span>';
+}
+function schattenBadge(v){
+  if(v==null||v===undefined) return '–';
+  const n=parseFloat(v);
+  if(isNaN(n)) return '–';
+  const kl = n<20?'sonnig':n<40?'halbschattig':'schattig';
+  const cls= n<20?'b-yellow':n<40?'b-blue':'b-gray';
+  return n.toFixed(1)+' % <span class="badge '+cls+'">'+kl+'</span>';
+}
+
+// Begrünungsklasse aus NDVI-Coverage (>50% bereits gefiltert)
+function begrünungsKlasse(cov){
+  const v = parseFloat(cov)||0;
+  if(v > 75) return {label:'Hoch',   cls:'b-green'};
+  if(v > 50) return {label:'Mittel', cls:'b-teal'};
+  return           {label:'Gering',  cls:'b-lime'};
+}
+function baumBadge(v){
+  return (v===true||v==='true'||v===1||v==='1')
+    ? '<span class="badge b-orange">⚠ Ja</span>'
+    : '<span class="badge b-green">Nein</span>';
+}
+function aspectRichtung(deg){
+  if(deg == null || isNaN(deg)) return '–';
+  const d = ((parseFloat(deg) % 360) + 360) % 360;
+  const richtungen = ['N','NO','O','SO','S','SW','W','NW','N'];
+  const idx = Math.round(d / 45) % 8;
+  return d.toFixed(0) + '° (' + richtungen[idx] + ')';
+}
+
+// Farbe nach NDVI-Coverage (nur ≥50% wird angezeigt)
+function ndviColor(cov){
+  const raw = parseFloat(cov)||0;
+  const v = raw <= 1 ? raw * 100 : raw;  // normalize to %
+  if(v > 75) return '#166534';   // hoch  → dunkelgrün
+  return '#4ade80';              // mittel → hellgrün
+}
+
+function eignungFill(e){
+  if(!e)return'#1e3a5f';
+  if(e.includes('sehr gut'))return'#14532d';
+  if(e.includes('gut'))     return'#1e3a5f';
+  if(e.includes('bedingt')) return'#451a03';
+  return'#3f1414';
+}
+
+// ── Click-Handler ─────────────────────────────────────────────────
+let currentArea=0;
+
+function clickAlle(p){
+  showBox('alle');
+  document.getElementById('a-area').textContent  = p.area_m2!=null ? fmt1(p.area_m2)+' m²':'–';
+  document.getElementById('a-slope').textContent = p.slope!=null ? fmt1(p.slope)+'°' : p.dachneig!=null ? fmt1(p.dachneig)+'°':'–';
+  document.getElementById('a-bid').textContent   = p.buildingid ?? p.building_id ?? p.geb_id ?? '–';
+}
+function clickPot(p){
+  showBox('pot');
+  currentArea = parseFloat(p.area_m2)||0;
+  document.getElementById('p-area').textContent   = fmt1(currentArea)+' m²';
+  document.getElementById('p-slope').textContent  = p.slope!=null ? fmt1(p.slope)+'°' : p.dachneig!=null ? fmt1(p.dachneig)+'°':'–';
+  document.getElementById('p-schatten').innerHTML = schattenBadge(p.schatten);
+  document.getElementById('p-eignung').innerHTML  = eignungBadge(p.gruendach_eignung||p.eignung||null);
+  document.getElementById('m-area').textContent   = 'Fläche: '+fmt1(currentArea)+' m²';
+  document.getElementById('p-aspect').textContent = aspectRichtung(p.aspect);
+}
+function clickNdvi(p){
+  showBox('ndvi');
+  // Support both naming conventions: ndvicov (no underscore) and ndvi_coverage
+  const rawCov = parseFloat(p.ndvicov ?? p.ndvi_coverage ?? p.ndvi_cov ?? 0);
+  // Values can be 0-1 (decimal) or 0-100 (percent) — normalize to percent
+  const cov  = rawCov <= 1 ? rawCov * 100 : rawCov;
+  const mean = parseFloat(p.ndvimean ?? p.ndvi_mean ?? 0);
+  const kl   = begrünungsKlasse(cov);
+  document.getElementById('n-cov').textContent  = cov.toFixed(1)+' %';
+  document.getElementById('n-mean').textContent = mean > 0 ? mean.toFixed(3) : '–';
+  document.getElementById('n-class').innerHTML  = '<span class="badge '+kl.cls+'">'+kl.label+'</span>';
+  document.getElementById('n-tree').innerHTML   = baumBadge(p.baumverdacht ?? p.baum_verdacht ?? p.tree_suspect ?? false);
+}
+
+// ── Styles ────────────────────────────────────────────────────────
+const styleAlle = ()  => ({color:'#60a5fa', weight:1,   fillColor:'#1e3a5f', fillOpacity:.45});
+const stylePot  = f   => ({color:'#34d399', weight:1.5, fillColor:eignungFill(f.properties.gruendach_eignung||f.properties.eignung), fillOpacity:.65});
+const styleNdvi = f   => ({color:'#14532d', weight:1,   fillColor:ndviColor(f.properties.ndvicov??f.properties.ndvi_coverage??f.properties.ndvi_cov??0), fillOpacity:.85});
+
+// ── Layer laden ───────────────────────────────────────────────────
+async function loadLayer(path, key, styleFn, clickFn, filterFn){
+  try{
+    const r = await fetch(path);
+    if(!r.ok) throw new Error(r.status);
+    const data = await r.json();
+
+    // Filter anwenden (z.B. nur NDVI ≥ 50%)
+    const features = filterFn
+      ? { ...data, features: data.features.filter(filterFn) }
+      : data;
+
+    const layer = L.geoJSON(features, {
+      style: styleFn,
+      onEachFeature:(feat,lyr)=>{
+        lyr.on('click', e=>{ L.DomEvent.stopPropagation(e); clickFn(feat.properties); });
+        lyr.on('mouseover', ()=>lyr.setStyle({weight:2.5, fillOpacity:.95}));
+        lyr.on('mouseout',  ()=>lyr.setStyle(styleFn(feat)));
+      }
+    });
+    gLayers[key] = layer;
+    if(key==='alle') layer.addTo(map);
+    return { raw: data, filtered: features };
+  }catch(e){ console.warn('Layer nicht geladen:', path, e.message); return null; }
+}
+
+// ── Statistiken ───────────────────────────────────────────────────
+function updateStats(alle, pot, ndviFiltered){
+  if(alle) document.getElementById('s-total').textContent = alle.features.length;
+  if(pot)  document.getElementById('s-pot').textContent   = pot.features.length;
+  if(ndviFiltered){
+    document.getElementById('s-beg').textContent = ndviFiltered.features.length;
+    const covs = ndviFiltered.features
+      .map(f => { const r = parseFloat(f.properties.ndvicov ?? f.properties.ndvi_coverage ?? f.properties.ndvi_cov ?? 0); return r <= 1 ? r*100 : r; })
+      .filter(v => v > 0);
+    document.getElementById('s-score').textContent = covs.length
+      ? (covs.reduce((a,b)=>a+b,0)/covs.length).toFixed(1)+' %' : '–';
+  }
+}
+
+// ── Modal ─────────────────────────────────────────────────────────
+function openModal(){
+  document.getElementById('modal-result').style.display='none';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('modal-overlay').classList.remove('open'); }
+document.getElementById('modal-overlay').addEventListener('click', e=>{
+  if(e.target===document.getElementById('modal-overlay')) closeModal();
+});
+function updatePreis(){
+  const def = document.getElementById('c-type').value;
+  const inp = document.getElementById('c-preis');
+  if(!inp.value) inp.placeholder = 'Standard: '+def+' €/m²';
+}
+function berechne(){
+  const def   = parseFloat(document.getElementById('c-type').value);
+  const preis = parseFloat(document.getElementById('c-preis').value)||def;
+  const foerd = parseFloat(document.getElementById('c-antrag').value);
+  if(!currentArea){ alert('Bitte zuerst eine Potenzialfläche anklicken.'); return; }
+  const brutto = preis * currentArea;
+  const foerdBetrag = Math.min(brutto * foerd, 100000);
+  const netto = brutto - foerdBetrag;
+  const f = v => v.toLocaleString('de-DE',{minimumFractionDigits:0,maximumFractionDigits:0})+' €';
+  document.getElementById('r-brutto').textContent = f(brutto);
+  document.getElementById('r-foerd').textContent  = 'Förderung ('+Math.round(foerd*100)+'%): − '+f(foerdBetrag);
+  document.getElementById('r-netto').textContent  = 'Eigenanteil: '+f(netto);
+  document.getElementById('modal-result').style.display = 'block';
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+(async()=>{
+  document.getElementById('c-preis').placeholder = 'Standard: 80 €/m²';
+
+  // NDVI-Filter: nur Coverage ≥ 50%
+  const ndviFilter = f => {
+    const raw = parseFloat(f.properties.ndvicov ?? f.properties.ndvi_coverage ?? f.properties.ndvi_cov ?? 0);
+    const cov = raw <= 1 ? raw * 100 : raw;  // normalize to %
+    return cov >= 50;
+  };
+
+  const [alleRes, potRes, ndviRes] = await Promise.all([
+    loadLayer('data/dachflaechen1.geojson',        'alle', styleAlle, clickAlle, null),
+    loadLayer('data/potentialflaechen_solar.geojson',    'pot',  stylePot,  clickPot,  null),
+    loadLayer('data/dachflaechen_ndvi_05.geojson',  'ndvi', styleNdvi, clickNdvi, ndviFilter),
+  ]);
+
+  updateStats(
+    alleRes?.raw,
+    potRes?.raw,
+    ndviRes?.filtered
+  );
+})();
+</script>
+</body>
+</html>
