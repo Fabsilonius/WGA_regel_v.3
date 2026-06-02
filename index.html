@@ -324,13 +324,31 @@ function clickAlle(p){
 }
 function clickPot(p){
   showBox('pot');
-  currentArea = parseFloat(p.area_m2)||0;
+  // Feldnamen aus potential_solar (Großschreibung) + Fallback auf alte Namen
+  currentArea = parseFloat(p.Flaeche ?? p.area_m2) || 0;
+  const neigung = p.Neigung ?? p.Neigung ?? p.slope ?? p.dachneig;
+  const verschattung = p.Verschattung ?? p.schatten ?? null;
+  const ausrichtung  = p.Ausrichtung  ?? p.aspect   ?? null;
+  const eignung      = p.Gruendach_Eignung ?? p.gruendach_eignung ?? p.eignung ?? null;
+
   document.getElementById('p-area').textContent   = fmt1(currentArea)+' m²';
-  document.getElementById('p-slope').textContent  = p.slope!=null ? fmt1(p.slope)+'°' : p.dachneig!=null ? fmt1(p.dachneig)+'°':'–';
-  document.getElementById('p-schatten').innerHTML = schattenBadge(p.schatten);
-  document.getElementById('p-eignung').innerHTML  = eignungBadge(p.gruendach_eignung||p.eignung||null);
+  document.getElementById('p-slope').textContent  = neigung!=null ? fmt1(neigung)+'°' : '–';
   document.getElementById('m-area').textContent   = 'Fläche: '+fmt1(currentArea)+' m²';
-  document.getElementById('p-aspect').textContent = aspectRichtung(p.aspect);
+  document.getElementById('p-aspect').textContent = aspectRichtung(ausrichtung);
+  document.getElementById('p-eignung').innerHTML  = eignungBadge(eignung);
+
+  // Verschattung: neues Feld ist ein String (z.B. "sonnig (geometrisch)"), kein Zahlenwert
+  const vEl = document.getElementById('p-schatten');
+  if(verschattung == null){
+    vEl.textContent = '–';
+  } else if(isNaN(parseFloat(verschattung))){
+    // String-Wert direkt als Badge anzeigen
+    const cls = verschattung.includes('schattig') && !verschattung.includes('halb') ? 'b-gray'
+              : verschattung.includes('halb') ? 'b-blue' : 'b-yellow';
+    vEl.innerHTML = '<span class="badge '+cls+'">'+verschattung+'</span>';
+  } else {
+    vEl.innerHTML = schattenBadge(verschattung);
+  }
 }
 function clickNdvi(p){
   showBox('ndvi');
@@ -348,7 +366,7 @@ function clickNdvi(p){
 
 // ── Styles ────────────────────────────────────────────────────────
 const styleAlle = ()  => ({color:'#60a5fa', weight:1,   fillColor:'#1e3a5f', fillOpacity:.45});
-const stylePot  = f   => ({color:'#34d399', weight:1.5, fillColor:eignungFill(f.properties.gruendach_eignung||f.properties.eignung), fillOpacity:.65});
+const stylePot = f => ({color:'#34d399', weight:1.5, fillColor:eignungFill(f.properties.Gruendach_Eignung||f.properties.gruendach_eignung||f.properties.eignung), fillOpacity:.65});
 const styleNdvi = f   => ({color:'#14532d', weight:1,   fillColor:ndviColor(f.properties.ndvicov??f.properties.ndvi_coverage??f.properties.ndvi_cov??0), fillOpacity:.85});
 
 // ── Layer laden ───────────────────────────────────────────────────
