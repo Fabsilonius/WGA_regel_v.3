@@ -225,7 +225,7 @@ const truedopTile = L.tileLayer.wms(
    attribution:'© LGV Hamburg 2024', maxZoom:21});
 
 const map = L.map('map',{center:TILE_CENTER, zoom:TILE_ZOOM, layers:[osmTile]});
-const gLayers = {alle:null, pot:null, ndvi:null};
+const gLayers = {alle:null, pot:null, pot2:null, ndvi:null};
 
 function switchBase(w){
   if(w==='osm'){
@@ -239,6 +239,14 @@ function switchBase(w){
   }
 }
 function toggleLayer(key,on){
+  // pot schaltet beide Parts gleichzeitig
+  if(key==='pot'){
+    ['pot','pot2'].forEach(k=>{
+      if(!gLayers[k])return;
+      on ? gLayers[k].addTo(map) : map.removeLayer(gLayers[k]);
+    });
+    return;
+  }
   if(!gLayers[key])return;
   on ? gLayers[key].addTo(map) : map.removeLayer(gLayers[key]);
 }
@@ -372,7 +380,8 @@ async function loadLayer(path, key, styleFn, clickFn, filterFn){
 // ── Statistiken ───────────────────────────────────────────────────
 function updateStats(alle, pot, ndviFiltered){
   if(alle) document.getElementById('s-total').textContent = alle.features.length;
-  if(pot)  document.getElementById('s-pot').textContent   = pot.features.length;
+  if(pot)  document.getElementById('s-pot').textContent =
+  (pot.features.length) + (potRes2?.raw?.features?.length || 0);
   if(ndviFiltered){
     document.getElementById('s-beg').textContent = ndviFiltered.features.length;
     const covs = ndviFiltered.features
@@ -423,17 +432,18 @@ function berechne(){
     return cov >= 50;
   };
 
-  const [alleRes, potRes, ndviRes] = await Promise.all([
-    loadLayer('data/dachflaechen1.geojson',        'alle', styleAlle, clickAlle, null),
-    loadLayer('potentialflaechen_solar.geojson',    'pot',  stylePot,  clickPot,  null),
-    loadLayer('ndvi_whb_neu.geojson',  'ndvi', styleNdvi, clickNdvi, ndviFilter),
-  ]);
+  const [alleRes, potRes, potRes2, ndviRes] = await Promise.all([
+  loadLayer('data/dachflaechen1.geojson',     'alle', styleAlle, clickAlle, null),
+  loadLayer('potential_solar_part1.geojson',  'pot',  stylePot,  clickPot,  null),
+  loadLayer('potential_solar_part2.geojson',  'pot2', stylePot,  clickPot,  null),
+  loadLayer('ndvi_whb_neu.geojson',           'ndvi', styleNdvi, clickNdvi, ndviFilter),
+]);
 
-  updateStats(
-    alleRes?.raw,
-    potRes?.raw,
-    ndviRes?.filtered
-  );
+// Statistik: beide Parts zusammenzählen
+const potCombined = potRes?.raw
+  ? { features: [...(potRes.raw.features||[]), ...(potRes2?.raw?.features||[])] }
+  : null;
+updateStats(alleRes?.raw, potCombined, ndviRes?.filtered);
 })();
 </script>
 </body>
